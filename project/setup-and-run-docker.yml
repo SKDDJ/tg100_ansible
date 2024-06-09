@@ -1,0 +1,80 @@
+---
+- name: Setup and run Docker container on all servers
+  hosts: servers
+  become: yes
+  vars:
+    image_name: deepsparkhub
+    image_version: 24.06
+    tar_path: /home/yimingshi/shiym_proj/deepsparkhub_24.06.tar
+    remote_tar_path: /tmp/deepsparkhub_24.06.tar
+    docker_name: deepsparkhub_test
+    ports:
+      - "10007:22"
+      - "10008:8888"
+      - "10009:3001"
+    volume_mapping: "/root/shiym_proj:/root/shiym_proj"
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # - name: Pull Docker image
+    #   docker_image:
+    #     name: "{{ image_name }}:{{ image_version }}"
+    #     source: pull
+
+    - name: Copy Docker image tar to remote server
+      copy:
+        src: "{{ tar_path }}"
+        dest: "{{ remote_tar_path }}"
+
+    - name: Load Docker image from tar
+      command: "docker load -i {{ remote_tar_path }}"
+      register: load_output
+
+    - name: Tag Docker image
+      command: "docker tag {{ load_output.stdout_lines[-1].split()[2] }} {{ image_name }}:{{ image_version }}"
+      when: load_output.stdout.find('Loaded image') != -1
+
+    - name: Run Docker container
+      docker_container:
+        name: "{{ docker_name }}"
+        image: "{{ image_name }}:{{ image_version }}"
+        state: started
+        restart_policy: always
+        privileged: true
+        cap_add:
+          - ALL
+        ipc_mode: host
+        pid_mode: host
+        ports: "{{ ports }}"
+        volumes:
+          - "{{ volume_mapping }}"
