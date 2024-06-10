@@ -99,10 +99,3 @@
           - "{{ volume_mapping }}"
       tags:
         - run_container
-
-    - name: Unset proxy environment variables
-      shell: |
-        unset http_proxy
-        unset https_proxy
-      tags:
-        - cleanup

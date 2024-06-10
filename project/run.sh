@@ -16,14 +16,11 @@ case $1 in
   run)
     ansible-playbook -i inventory setup-and-run-docker.yml --tags "run_container"
     ;;
-  cleanup)
-    ansible-playbook -i inventory setup-and-run-docker.yml --tags "cleanup"
-    ;;
   all)
     ansible-playbook -i inventory setup-and-run-docker.yml
     ;;
   *)
-    echo "Usage: $0 {singbox|install|copy|load|run|cleanup|all}"
+    echo "Usage: $0 {singbox|install|copy|load|run|all}"
     exit 1
     ;;
 esac
