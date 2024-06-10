@@ -1,0 +1,51 @@
+---
+- name: Setup and run Docker container on all servers
+  hosts: servers
+  become: yes
+  vars:
+    image_name: deepsparkhub
+    image_version: 24.06
+    proxy_env: "http://127.0.0.1:2080"
+    singbox_config_url: "https://gist.githubusercontent.com/SKDDJ/22cd12cc350861778622b6db7c94ba7c/raw"
+    singbox_config_path: "/etc/sing-box/config.json"
+  tasks:
+    - name: Add sing-box GPG key
+      shell: |
+        sudo curl -fsSL https://sing-box.app/gpg.key -o /etc/apt/keyrings/sagernet.asc
+        sudo chmod a+r /etc/apt/keyrings/sagernet.asc
+      tags:
+        - singbox
+
+    - name: Add sing-box repository
+      shell: |
+        echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/sagernet.asc] https://deb.sagernet.org/ * *" | sudo tee /etc/apt/sources.list.d/sagernet.list > /dev/null
+      tags:
+        - singbox
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      tags:
+        - singbox
+
+    - name: Install sing-box package
+      apt:
+        name: sing-box
+        state: present
+      tags:
+        - singbox
+
+    - name: Download sing-box configuration
+      get_url:
+        url: "{{ singbox_config_url }}"
+        dest: "{{ singbox_config_path }}"
+        mode: '0644'
+      tags:
+        - singbox
+
+    - name: Start sing-box service
+      shell: "nohup sing-box run &"
+      args:
+        chdir: "/etc/sing-box"
+      tags:
+        - singbox

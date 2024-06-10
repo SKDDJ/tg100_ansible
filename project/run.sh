@@ -1,6 +1,9 @@
 #!/bin/bash
 # pip install -U PyYAML ansible 
 case $1 in
+  singbox)
+    ansible-playbook -i inventory proxy_setup.yml --tags "singbox"
+    ;;
   install)
     ansible-playbook -i inventory setup-and-run-docker.yml --tags "install,docker_setup"
     ;;
@@ -13,11 +16,14 @@ case $1 in
   run)
     ansible-playbook -i inventory setup-and-run-docker.yml --tags "run_container"
     ;;
+  cleanup)
+    ansible-playbook -i inventory setup-and-run-docker.yml --tags "cleanup"
+    ;;
   all)
     ansible-playbook -i inventory setup-and-run-docker.yml
     ;;
   *)
-    echo "Usage: $0 {install|copy|load|run|all}"
+    echo "Usage: $0 {singbox|install|copy|load|run|cleanup|all}"
     exit 1
     ;;
 esac

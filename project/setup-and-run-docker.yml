@@ -5,6 +5,7 @@
   vars:
     image_name: deepsparkhub
     image_version: 24.06
+    proxy_env: "http://127.0.0.1:2080"
     tar_path: /root/shiym_proj/deepsparkhub_24.06.tar
     remote_tar_path: /tmp/deepsparkhub_24.06.tar
     docker_name: deepsparkhub_test
@@ -13,6 +14,9 @@
       - "10008:8888"
       - "10009:3001"
     volume_mapping: "/root/shiym_proj:/root/shiym_proj"
+  environment:
+    http_proxy: "{{ proxy_env }}"
+    https_proxy: "{{ proxy_env }}"
   tasks:
     - name: Install required packages
       apt:
@@ -95,3 +99,10 @@
           - "{{ volume_mapping }}"
       tags:
         - run_container
+
+    - name: Unset proxy environment variables
+      shell: |
+        unset http_proxy
+        unset https_proxy
+      tags:
+        - cleanup
