@@ -5,7 +5,7 @@
   vars:
     image_name: deepsparkhub
     image_version: 24.06
-    tar_path: /home/yimingshi/shiym_proj/deepsparkhub_24.06.tar
+    tar_path: /root/shiym_proj/deepsparkhub_24.06.tar
     remote_tar_path: /tmp/deepsparkhub_24.06.tar
     docker_name: deepsparkhub_test
     ports:
@@ -23,46 +23,57 @@
           - software-properties-common
         state: present
         update_cache: yes
+      tags:
+        - install
 
     - name: Add Docker GPG key
       apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
+      tags:
+        - docker_setup
 
     - name: Add Docker repository
       apt_repository:
         repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
+      tags:
+        - docker_setup
 
     - name: Install Docker
       apt:
         name: docker-ce
         state: present
         update_cache: yes
+      tags:
+        - docker_setup
 
     - name: Ensure Docker is running
       service:
         name: docker
         state: started
         enabled: yes
-
-    # - name: Pull Docker image
-    #   docker_image:
-    #     name: "{{ image_name }}:{{ image_version }}"
-    #     source: pull
+      tags:
+        - docker_setup
 
     - name: Copy Docker image tar to remote server
       copy:
         src: "{{ tar_path }}"
         dest: "{{ remote_tar_path }}"
+      tags:
+        - copy_image
 
     - name: Load Docker image from tar
       command: "docker load -i {{ remote_tar_path }}"
       register: load_output
+      tags:
+        - load_image
 
     - name: Tag Docker image
       command: "docker tag {{ load_output.stdout_lines[-1].split()[2] }} {{ image_name }}:{{ image_version }}"
       when: load_output.stdout.find('Loaded image') != -1
+      tags:
+        - tag_image
 
     - name: Run Docker container
       docker_container:
@@ -71,10 +82,16 @@
         state: started
         restart_policy: always
         privileged: true
-        cap_add:
+        # 注释掉 cap_add
+        # cap_add:
+        #   - ALL
+        # use capbilites instead
+        capabilities:
           - ALL
         ipc_mode: host
         pid_mode: host
         ports: "{{ ports }}"
         volumes:
           - "{{ volume_mapping }}"
+      tags:
+        - run_container
